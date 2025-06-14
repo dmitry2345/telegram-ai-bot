@@ -1,4 +1,3 @@
-```python
 import os
 import datetime
 import logging
@@ -60,7 +59,6 @@ async def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error in scheduled_post: {e}")
 
-
 def generate_text_for_today() -> str:
     today = datetime.date.today().strftime("%d.%m.%Y")
     prompt = f"Технологические новости за {today}:"
@@ -86,7 +84,6 @@ def generate_text_for_today() -> str:
         f"<a href=\"{affiliate}\">Рекомендуемый товар</a>"
     )
 
-
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start_command))
@@ -98,4 +95,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
