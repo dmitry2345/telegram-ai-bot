@@ -1,18 +1,24 @@
+```python
 import os
 import datetime
 import logging
 import requests
-from telegram import ParseMode
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, JobQueue
+from telegram.constants import ParseMode
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    JobQueue,
+)
 
-# 1) Логирование
+# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s — %(levelname)s — %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# 2) Переменные окружения
+# Переменные окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HF_API_KEY = os.getenv("HF_API_KEY")
@@ -20,16 +26,14 @@ HF_MODEL = "EleutherAI/gpt-j-6B"
 HF_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
 
-# 3) Команда /start
 async def start_command(update: ContextTypes.DEFAULT_TYPE, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Привет! Я публикую новости в канал по расписанию.\n"
-        "Команды:\n"
+        "👋 Привет! Я — бот, который по расписанию публикует технологические новости в канал.\n"
+        "ℹ️ Доступные команды:\n"
         "/start — это сообщение\n"
-        "/now — немедленно запостить свежие новости"
+        "/now — сразу прислать свежий пост\n"
     )
 
-# 4) Команда /now
 async def now_command(update: ContextTypes.DEFAULT_TYPE, context: ContextTypes.DEFAULT_TYPE):
     try:
         text = generate_text_for_today()
@@ -39,12 +43,11 @@ async def now_command(update: ContextTypes.DEFAULT_TYPE, context: ContextTypes.D
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=False
         )
-        await update.message.reply_text("✅ Опубликовал в канал.")
+        await update.message.reply_text("✅ Опубликовал пост в канал!")
     except Exception as e:
-        logger.error(f"Ошибка в /now: {e}")
-        await update.message.reply_text(f"❌ Не удалось опубликовать: {e}")
+        logger.error(f"Error in now_command: {e}")
+        await update.message.reply_text(f"❌ Ошибка при публикации: {e}")
 
-# 5) Функция по расписанию
 async def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
     try:
         text = generate_text_for_today()
@@ -55,9 +58,9 @@ async def scheduled_post(context: ContextTypes.DEFAULT_TYPE):
             disable_web_page_preview=False
         )
     except Exception as e:
-        logger.error(f"Ошибка в scheduled_post: {e}")
+        logger.error(f"Error in scheduled_post: {e}")
 
-# 6) Генерация текста с проверками
+
 def generate_text_for_today() -> str:
     today = datetime.date.today().strftime("%d.%m.%Y")
     prompt = f"Технологические новости за {today}:"
@@ -83,15 +86,16 @@ def generate_text_for_today() -> str:
         f"<a href=\"{affiliate}\">Рекомендуемый товар</a>"
     )
 
-# 7) Точка входа бота
+
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("now", now_command))
-    # Расписание: каждые 3600 с (1 час)
-    app.job_queue.run_repeating(scheduled_post, interval=3600, first=10)
+    jq: JobQueue = app.job_queue
+    jq.run_repeating(scheduled_post, interval=3600, first=10)
     logger.info("Бот запущен и слушает обновления...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
+```
