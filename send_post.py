@@ -1,40 +1,26 @@
 import os
 import datetime
 import requests
-from openai import OpenAI
+import feedparser
 
-# Получаем переменные из окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Инициализируем OpenAI SDK
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Можно заменить на другой RSS-источник
+RSS_URL = "https://www.theverge.com/rss/index.xml"
 
-def generate_news():
+def get_rss_news():
+    feed = feedparser.parse(RSS_URL)
     today = datetime.date.today().strftime("%d.%m.%Y")
-    prompt = (
-        f"Сгенерируй короткие технологические новости на сегодня ({today}) "
-        "в стиле новостной сводки. Сделай их интересными, актуальными и информативными."
-    )
+    message = f"<b>Техно-новости на {today}:</b>\n\n"
+    
+    for entry in feed.entries[:5]:  # Берем только 5 свежих
+        title = entry.title
+        link = entry.link
+        message += f"🔹 <a href='{link}'>{title}</a>\n"
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Ты технологический журналист."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=400,
-        temperature=0.7
-    )
-
-    text = response.choices[0].message.content.strip()
-    affiliate = "https://www.amazon.com/dp/B00EXAMPLE/?tag=yourID-20"
-    return (
-        f"<b>Новости {today}</b>\n\n"
-        f"{text}\n\n"
-        f"<a href=\"{affiliate}\">Рекомендуемый гаджет</a>"
-    )
+    message += "\n<i>Источник: The Verge</i>"
+    return message
 
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -44,12 +30,12 @@ def send_to_telegram(text):
         "parse_mode": "HTML",
         "disable_web_page_preview": False
     }
-    r = requests.post(url, data=payload)
-    if not r.ok:
-        raise Exception(f"Telegram error: {r.text}")
+    response = requests.post(url, data=payload)
+    if not response.ok:
+        raise Exception(f"Ошибка Telegram API: {response.text}")
 
 def main():
-    news = generate_news()
+    news = get_rss_news()
     send_to_telegram(news)
 
 if __name__ == "__main__":
