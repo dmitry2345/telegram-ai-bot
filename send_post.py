@@ -1,33 +1,34 @@
 import os
 import datetime
 import requests
-import openai
+from openai import OpenAI
 
-# Настройки
+# Получаем переменные из окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-openai.api_key = OPENAI_API_KEY
+# Инициализируем OpenAI SDK
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def generate_news():
     today = datetime.date.today().strftime("%d.%m.%Y")
     prompt = (
         f"Сгенерируй короткие технологические новости на сегодня ({today}) "
-        "в стиле новостной сводки. Сделай их информативными, актуальными и интересными."
+        "в стиле новостной сводки. Сделай их интересными, актуальными и информативными."
     )
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "Ты опытный технологический журналист."},
+            {"role": "system", "content": "Ты технологический журналист."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=400,
         temperature=0.7
     )
 
-    text = response.choices[0].message["content"].strip()
+    text = response.choices[0].message.content.strip()
     affiliate = "https://www.amazon.com/dp/B00EXAMPLE/?tag=yourID-20"
     return (
         f"<b>Новости {today}</b>\n\n"
