@@ -17,9 +17,10 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install dependencies
+           - name: Install dependencies
         run: |
-          pip install transformers requests
+          pip install python-telegram-bot transformers requests
+
 
       - name: Run Telegram Bot
         env:
