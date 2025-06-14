@@ -7,36 +7,52 @@ import random
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Список русскоязычных RSS-лент
 RSS_FEEDS = [
     "https://habr.com/ru/rss/",
     "https://vc.ru/rss/all",
     "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"
 ]
 
-def get_russian_news():
+# Стоп-слова (можно дополнять)
+BANNED_KEYWORDS = [
+    "Украина", "Путин", "мобилизация", "взрыв", "теракт", "боевые действия",
+    "ЛГБТ", "смерть", "убийство", "насилие", "протест", "политика", "санкции",
+    "Навальный", "СВО", "спецоперация", "экстремизм", "МИД", "Минобороны"
+]
+
+def is_safe(title):
+    """Проверяет, не содержит ли заголовок запрещённых слов."""
+    lower_title = title.lower()
+    for word in BANNED_KEYWORDS:
+        if word.lower() in lower_title:
+            return False
+    return True
+
+def get_safe_news():
     today = datetime.date.today().strftime("%d.%m.%Y")
-    message = f"<b>Свежие новости на {today}:</b>\n\n"
-    
+    message = f"<b>Технологические новости на {today}:</b>\n\n"
+
     entries = []
     for url in RSS_FEEDS:
         feed = feedparser.parse(url)
         entries.extend(feed.entries)
 
-    # Убираем дубли по названию
     unique_titles = set()
-    news = []
+    filtered_news = []
+
     for entry in entries:
         title = entry.title.strip()
-        if title not in unique_titles:
+        link = entry.link
+        if title not in unique_titles and is_safe(title):
             unique_titles.add(title)
-            link = entry.link
-            news.append(f"🔹 <a href='{link}'>{title}</a>")
+            filtered_news.append(f"🔹 <a href='{link}'>{title}</a>")
 
-    random.shuffle(news)
-    message += "\n".join(news[:5])  # Только 5 случайных
+    if not filtered_news:
+        return f"<b>Нет подходящих новостей на {today}</b>\nВсе материалы отфильтрованы по безопасности."
 
-    message += "\n\n<i>Источник: Хабр, VC, РБК</i>"
+    random.shuffle(filtered_news)
+    message += "\n".join(filtered_news[:5])
+    message += "\n\n<i>Источник: Хабр, VC.ru, РБК</i>"
     return message
 
 def send_to_telegram(text):
@@ -52,7 +68,7 @@ def send_to_telegram(text):
         raise Exception(f"Ошибка Telegram API: {response.text}")
 
 def main():
-    news = get_russian_news()
+    news = get_safe_news()
     send_to_telegram(news)
 
 if __name__ == "__main__":
