@@ -3,29 +3,28 @@ name: Auto Telegram Post
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # каждый час
+    - cron: '0 * * * *'  # раз в час
 
 jobs:
   post:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout репозиторий
+      - name: Клонируем репозиторий
         uses: actions/checkout@v3
 
-      - name: Установка Python
+      - name: Устанавливаем Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Установка зависимостей
+      - name: Устанавливаем зависимости
         run: |
-          pip install openai requests
+          pip install requests feedparser
 
-      - name: Отправка поста в Telegram
+      - name: Публикуем пост в Telegram
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           python send_post.py
