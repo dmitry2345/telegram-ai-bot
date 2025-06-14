@@ -13,46 +13,54 @@ RSS_FEEDS = [
     "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"
 ]
 
-# Стоп-слова (можно дополнять)
 BANNED_KEYWORDS = [
-    "Украина", "Путин", "мобилизация", "взрыв", "теракт", "боевые действия",
-    "ЛГБТ", "смерть", "убийство", "насилие", "протест", "политика", "санкции",
-    "Навальный", "СВО", "спецоперация", "экстремизм", "МИД", "Минобороны"
+    "Украина", "Путин", "мобилизация", "взрыв", "теракт", "насилие",
+    "спецоперация", "Навальный", "санкции", "экстремизм", "МИД"
 ]
 
-def is_safe(title):
-    """Проверяет, не содержит ли заголовок запрещённых слов."""
-    lower_title = title.lower()
-    for word in BANNED_KEYWORDS:
-        if word.lower() in lower_title:
-            return False
-    return True
+INTRO_LINES = [
+    "🔥 Самое интересное из мира технологий:",
+    "💡 Сегодня в новостях:",
+    "🚀 Вот что обсуждают прямо сейчас:",
+    "📱 Не пропустите важное:",
+    "🧠 Свежие идеи и тренды:"
+]
 
-def get_safe_news():
+EMOJI_LIST = ["💻", "📊", "📡", "📱", "🚀", "🧠", "🔍"]
+
+def is_safe(title):
+    lower = title.lower()
+    return not any(bad.lower() in lower for bad in BANNED_KEYWORDS)
+
+def get_catchy_news():
     today = datetime.date.today().strftime("%d.%m.%Y")
-    message = f"<b>Технологические новости на {today}:</b>\n\n"
+    intro = random.choice(INTRO_LINES)
+    message = f"<b>{intro}</b>\n\n"
 
     entries = []
     for url in RSS_FEEDS:
         feed = feedparser.parse(url)
         entries.extend(feed.entries)
 
-    unique_titles = set()
-    filtered_news = []
+    random.shuffle(entries)
+    seen = set()
+    count = 0
 
     for entry in entries:
         title = entry.title.strip()
         link = entry.link
-        if title not in unique_titles and is_safe(title):
-            unique_titles.add(title)
-            filtered_news.append(f"🔹 <a href='{link}'>{title}</a>")
+        if title not in seen and is_safe(title):
+            seen.add(title)
+            emoji = random.choice(EMOJI_LIST)
+            message += f"{emoji} <b>{title}</b>\n<a href='{link}'>Читать →</a>\n\n"
+            count += 1
+        if count == 5:
+            break
 
-    if not filtered_news:
-        return f"<b>Нет подходящих новостей на {today}</b>\nВсе материалы отфильтрованы по безопасности."
+    if count == 0:
+        return "⚠️ Сегодня нет безопасных новостей для публикации."
 
-    random.shuffle(filtered_news)
-    message += "\n".join(filtered_news[:5])
-    message += "\n\n<i>Источник: Хабр, VC.ru, РБК</i>"
+    message += "<i>Источник: Хабр, VC.ru, РБК</i>"
     return message
 
 def send_to_telegram(text):
@@ -68,7 +76,7 @@ def send_to_telegram(text):
         raise Exception(f"Ошибка Telegram API: {response.text}")
 
 def main():
-    news = get_safe_news()
+    news = get_catchy_news()
     send_to_telegram(news)
 
 if __name__ == "__main__":
