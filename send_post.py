@@ -5,20 +5,19 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def generate_post():
-    url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+    url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 
     prompt = (
         "Составь короткий новостной пост для Telegram-канала на русском языке. "
-        "Тема — актуальные новости России. Пиши кратко, интересно и безопасно, избегай острых тем. "
-        "Пример: 📰 В Москве запустили новый маршрут электробусов. Подробнее в источниках."
+        "Тема — актуальные, безопасные новости из России. Пиши кратко, интересно, не упоминай политику и конфликты. "
+        "Формат — Telegram-пост с эмодзи. Пример:\n"
+        "📰 В Сочи открылся новый арт-фестиваль. Ждут более 10 тысяч гостей!"
     )
 
     headers = {"Content-Type": "application/json"}
     payload = {
-        "inputs": f"[INST] {prompt} [/INST]",
-        "options": {
-            "wait_for_model": True
-        }
+        "inputs": prompt,
+        "options": {"wait_for_model": True}
     }
 
     response = requests.post(url, headers=headers, json=payload)
@@ -29,7 +28,7 @@ def generate_post():
     if isinstance(result, list) and len(result) > 0:
         return result[0]["generated_text"].strip()
     else:
-        raise Exception("Ответ HuggingFace некорректен")
+        raise Exception("Ответ HuggingFace пуст или некорректен")
 
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
