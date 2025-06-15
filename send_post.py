@@ -3,32 +3,38 @@ import os
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 def generate_post():
-    url = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
+    url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 
     prompt = (
-        "Составь короткий новостной пост для Telegram-канала на русском языке. "
-        "Тема — актуальные, безопасные новости из России. Пиши кратко, интересно, не упоминай политику и конфликты. "
-        "Формат — Telegram-пост с эмодзи. Пример:\n"
-        "📰 В Сочи открылся новый арт-фестиваль. Ждут более 10 тысяч гостей!"
+        "Напиши короткую, позитивную, интересную новость из России в стиле Telegram-поста. "
+        "Тема должна быть безопасной, без политики, с эмодзи и лёгким юмором. Пример:\n\n"
+        "🚀 В Казани школьники собрали собственную ракету на уроке труда. Уже планируют запуск!"
     )
 
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
     payload = {
-        "inputs": prompt,
-        "options": {"wait_for_model": True}
+        "inputs": f"[INST] {prompt} [/INST]",
+        "options": {
+            "wait_for_model": True
+        }
     }
 
     response = requests.post(url, headers=headers, json=payload)
     if response.status_code != 200:
         raise Exception(f"Ошибка HuggingFace API: {response.status_code} - {response.text}")
 
-    result = response.json()
-    if isinstance(result, list) and len(result) > 0:
-        return result[0]["generated_text"].strip()
+    data = response.json()
+    if isinstance(data, list) and "generated_text" in data[0]:
+        return data[0]["generated_text"].strip()
     else:
-        raise Exception("Ответ HuggingFace пуст или некорректен")
+        raise Exception("Неверный ответ HuggingFace API")
 
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -37,6 +43,7 @@ def send_to_telegram(text):
         "text": text,
         "parse_mode": "HTML"
     }
+
     response = requests.post(url, data=payload)
     if not response.ok:
         raise Exception(f"Ошибка Telegram API: {response.text}")
